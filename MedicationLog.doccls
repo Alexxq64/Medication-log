@@ -114,12 +114,14 @@ End Sub
 
 
 Sub DosageSchedule()
-    Duration = 3
-    For i = 1 To Duration
-    ' TotalRows для того, чтобы после сортировки все добавленные строки встали последними в соответствующий день
-        CopyFromTo TodayRowNumber.Value, TotalRows.Value, Date + i
-    Next i
-    sortByDate
+
+    PillHandlingForm.Show
+'    Duration = 3
+'    For i = 1 To Duration
+'    ' TotalRows для того, чтобы после сортировки все добавленные строки встали последними в соответствующий день
+'        CopyFromTo TodayRowNumber.Value, TotalRows.Value, Date + i
+'    Next i
+'    sortByDate
 End Sub
 
 Public Sub AddEmptyString(from As Integer, into As Integer)
