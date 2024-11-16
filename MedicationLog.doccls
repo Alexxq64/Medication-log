@@ -69,74 +69,89 @@ End Sub
 '@Ignore ProcedureCanBeWrittenAsFunction
 Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
     Dim newRow As Long
-
-    ' Если двойной щелчок выполнен во второй ячейке строки (не на заголовке),
-    ' копируем текущую строку, вставляем её после строки с сегодняшней датой,
-    ' устанавливаем сегодняшнюю дату в первой ячейке новой строки,
-    ' применяем условное форматирование и переходим в первую ячейку новой строки.
-    ' TODO: Если двойной щелчок на лекарстве на сегодняшней дате, то - схема приема
-    ' TODO: Схема приема - сколько дней и от какой даты
-    ' TODO: Если двойной щелчок на лекарстве на пустой строке - выбор из списка
-    ' TODO: Фокус на последнее изменение
-    ' NOTE: надо придумать, чтобы это работало не только сегодня
-    ' NOTE: когда добавлять строки
-    ' NOTE: замена Application.Undo на selectionChange
+'    Dim CurrentRow As Long
     
+
     If (Target.Column = 2 Or Target.Column = 1) And Target.Row > 1 Then
         Application.ScreenUpdating = False
-        Cancel = True                            ' Отменяем стандартное действие двойного щелчка
-        newRow = SystemData.Range("TodayRowNumber").Value + 1
-        
+        ' Отменяем стандартное действие двойного щелчка
+        Cancel = True
+        newRow = TodayRowNumber.Value + 1
         ' Копируем строку и вставляем её после строки Сегодня
         ' Если строки Сегодня нет, то между ближайшими датами до и после Сегодня
         If Target.Column = 2 Then
-            Me.Rows(Target.Row).Copy
+            If Cells(Target.Row, 1).Value = Date Then
+                DosageSchedule
+            Else
+                CopyFromTo Target.Row, newRow
+            End If
         Else
-            Me.Rows(TotalRows).Copy
+            CopyFromTo TotalRows.Value, newRow
         End If
-        Me.Rows(newRow).Insert shift:=xlDown
-        Application.CutCopyMode = False
-        
-        ' Устанавливаем сегодняшнюю дату в первый столбец новой строки
-        Me.Cells(newRow, 1).Value = Date
-        ' Применяем условное форматирование и перемещаемся к новой строке
-        '        ApplyConditionalFormatting
         Application.ScreenUpdating = True
         Application.Goto Me.Cells(newRow, 1)     ', True
     End If
+
+
+End Sub
+
+Sub CopyFromTo(from As Long, into As Long, Optional newDate As Date = 0)
+    ' Если newDate не передан, устанавливаем сегодняшнюю дату
+    If newDate = 0 Then newDate = Date
+    
+    ' Копируем строку from
+    Rows(from).Copy
+    
+    ' Вставляем новую строку перед строкой into
+    Rows(into).Insert shift:=xlDown
+    
+    ' Очищаем режим копирования
+    Application.CutCopyMode = False
+    
+    ' Устанавливаем новую дату в первую ячейку вставленной строки
+    Cells(into, 1).Value = newDate
 End Sub
 
 
-Public Sub AddEmtyString(From As Integer, Into As Integer)
+Sub DosageSchedule()
+    Duration = 3
+    For i = 1 To Duration
+    ' TotalRows для того, чтобы после сортировки все добавленные строки встали последними в соответствующий день
+        CopyFromTo TodayRowNumber.Value, TotalRows.Value, Date + i
+    Next i
+    sortByDate
+End Sub
+
+Public Sub AddEmptyString(from As Integer, into As Integer)
 ' BUG: раскрашивает 1 столбец на всех листах, откуда выполняется макрос, в зеленый
     Application.ScreenUpdating = False
     With MedicationLog
-        .Rows(From).Copy
-        .Rows(Into).Insert
+        .Rows(from).Copy
+        .Rows(into).Insert
         Application.CutCopyMode = xlCopy
-        .Cells(Into, 1) = .Cells(From, 1)
+        .Cells(into, 1) = .Cells(from, 1)
         '@Ignore UseMeaningfulName
         For i = 2 To TotalColumns
-            If Not .Cells(Into, i).HasFormula Then .Cells(Into, i).Clear
+            If Not .Cells(into, i).HasFormula Then .Cells(into, i).Clear
         Next i
     End With
     Application.ScreenUpdating = True
 End Sub
 
-Public Sub AddEmtyStringToTheEnd()
+Public Sub AddEmptyStringToTheEnd()
     With MedicationLog
-        AddEmtyString 2, TotalRows + 1
+        AddEmptyString 2, TotalRows + 1
         .Cells(TotalRows, 1) = .Cells(TotalRows - 1, 1) + 1
     End With
 End Sub
 
 
 Public Sub FilterByCellValue()
-    Dim currentRow As Long
-    currentRow = ActiveCell.Row
+    Dim CurrentRow As Long
+    CurrentRow = ActiveCell.Row
     
     Dim targetValue As Variant
-    targetValue = Cells(currentRow, 2).Value
+    targetValue = Cells(CurrentRow, 2).Value
     
     ActiveSheet.UsedRange.AutoFilter Field:=2, Criteria1:=targetValue
 End Sub
