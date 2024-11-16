@@ -1,0 +1,258 @@
+﻿'@Ignore OptionExplicit
+'@IgnoreModule UndeclaredVariable, OptionExplicit, ParameterCanBeByVal
+'@Folder("Таблетки")
+
+Public Function GetDateShift(Target As Range) As Integer
+    ' Значение по умолчанию GetDateShift = 0
+
+    ' Проверяем, что изменение произошло в первом столбце, за исключением первой строки ("Сегодня")
+    ' и затронута только одна ячейка с символами "-" или "+"
+    If Target.Column = 1 And _
+       Target.Row <> 1 And _
+       Target.Cells.count = 1 Then
+        If (Target.Value = "-" Or Target.Value = "+") Then
+        
+            ' Определяем величину сдвига с помощью IIf
+            GetDateShift = IIf(Target.Value = "+", 1, -1)
+        
+            ' Отменяем текущее изменение для сохранения исходной даты
+            Application.Undo
+        End If
+    End If
+End Function
+
+Public Sub DateShift(cell As Range, shift As Integer)
+    If shift = 0 Then Exit Sub  ' Выход, если сдвиг равен 0
+
+' BUG: не работает поиск свободной даты
+
+    Dim newDate As Date
+    Dim medicine As String
+    
+    newDate = cell + shift          ' Начальная новая дата
+    medicine = cell.Offset(0, 1).Value ' Лекарство из второго столбца
+
+    ' Начинаем цикл поиска свободной даты
+    Do
+        ' Если дата не найдена в списке или найдена, но не для этого лекарства
+        If WorksheetFunction.CountIf(Range("A:A"), newDate) = 0 Then
+            Exit Do                     ' Даты нет, выходим из цикла
+        ElseIf WorksheetFunction.CountIfs(Range("A:A"), newDate, Range("B:B"), medicine) = 0 Then
+            Exit Do                     ' Дата есть, лекарства нет
+        Else
+            newDate = newDate + shift   ' Переход на следующую дату в направлении shift
+        End If
+    Loop
+    
+    ' Присваиваем Target новую свободную дату
+    cell.Value = newDate
+
+    ' Сортировка по дате после изменения значения
+    sortByDate
+End Sub
+
+
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+    ' +/- (+Enter) на дате сдвигает сдвигает текущую строку вперед или назад на день или больше
+    ' больше, если в следующий день уже есть это лекарство
+    DateShift Target, GetDateShift(Target)
+
+    ' Применение условного форматирования после изменений
+    ApplyConditionalFormatting
+End Sub
+
+
+
+
+
+'@Ignore ProcedureCanBeWrittenAsFunction
+Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
+    Dim newRow As Long
+
+    ' Если двойной щелчок выполнен во второй ячейке строки (не на заголовке),
+    ' копируем текущую строку, вставляем её после строки с сегодняшней датой,
+    ' устанавливаем сегодняшнюю дату в первой ячейке новой строки,
+    ' применяем условное форматирование и переходим в первую ячейку новой строки.
+    ' TODO: Если двойной щелчок на лекарстве на сегодняшней дате, то - схема приема
+    ' TODO: Схема приема - сколько дней и от какой даты
+    ' TODO: Если двойной щелчок на лекарстве на пустой строке - выбор из списка
+    ' TODO: Фокус на последнее изменение
+    ' NOTE: надо придумать, чтобы это работало не только сегодня
+    ' NOTE: когда добавлять строки
+    ' NOTE: замена Application.Undo на selectionChange
+    
+    If (Target.Column = 2 Or Target.Column = 1) And Target.Row > 1 Then
+        Application.ScreenUpdating = False
+        Cancel = True                            ' Отменяем стандартное действие двойного щелчка
+        newRow = SystemData.Range("TodayRowNumber").Value + 1
+        
+        ' Копируем строку и вставляем её после строки Сегодня
+        ' Если строки Сегодня нет, то между ближайшими датами до и после Сегодня
+        If Target.Column = 2 Then
+            Me.Rows(Target.Row).Copy
+        Else
+            Me.Rows(TotalRows).Copy
+        End If
+        Me.Rows(newRow).Insert shift:=xlDown
+        Application.CutCopyMode = False
+        
+        ' Устанавливаем сегодняшнюю дату в первый столбец новой строки
+        Me.Cells(newRow, 1).Value = Date
+        ' Применяем условное форматирование и перемещаемся к новой строке
+        '        ApplyConditionalFormatting
+        Application.ScreenUpdating = True
+        Application.Goto Me.Cells(newRow, 1)     ', True
+    End If
+End Sub
+
+
+Public Sub AddEmtyString(From As Integer, Into As Integer)
+' BUG: раскрашивает 1 столбец на всех листах, откуда выполняется макрос, в зеленый
+    Application.ScreenUpdating = False
+    With MedicationLog
+        .Rows(From).Copy
+        .Rows(Into).Insert
+        Application.CutCopyMode = xlCopy
+        .Cells(Into, 1) = .Cells(From, 1)
+        '@Ignore UseMeaningfulName
+        For i = 2 To TotalColumns
+            If Not .Cells(Into, i).HasFormula Then .Cells(Into, i).Clear
+        Next i
+    End With
+    Application.ScreenUpdating = True
+End Sub
+
+Public Sub AddEmtyStringToTheEnd()
+    With MedicationLog
+        AddEmtyString 2, TotalRows + 1
+        .Cells(TotalRows, 1) = .Cells(TotalRows - 1, 1) + 1
+    End With
+End Sub
+
+
+Public Sub FilterByCellValue()
+    Dim currentRow As Long
+    currentRow = ActiveCell.Row
+    
+    Dim targetValue As Variant
+    targetValue = Cells(currentRow, 2).Value
+    
+    ActiveSheet.UsedRange.AutoFilter Field:=2, Criteria1:=targetValue
+End Sub
+
+Public Sub ResetFilterAndSetCellFromToday()
+    ' Отменяем фильтр
+    ActiveSheet.AutoFilterMode = False
+    
+    ' Находим текущую дату в первой колонке (предполагая, что даты находятся в формате "dd.mm.yy")
+    Dim todayDate As String
+    todayDate = Format$(Date, "dd.mm.yy")
+    
+    Dim foundCell As Range
+    On Error Resume Next
+    Set foundCell = Columns(1).Find(What:=todayDate, LookIn:=xlValues, LookAt:=xlWhole)
+    On Error GoTo 0
+    
+    ' Если дата найдена, устанавливаем текущую ячейку на вторую ячейку найденного ряда
+    If Not foundCell Is Nothing Then
+        foundCell.Offset(0, 1).Select
+        foundCell.Offset(0, 1).Application.Goto Reference:=foundCell.Offset(0, 1), Scroll:=True
+    End If
+End Sub
+
+Public Sub FilterOrResetAndSetCell()
+    If ActiveSheet.AutoFilterMode Then
+        ResetFilterAndSetCellFromToday
+    Else
+        FilterByCellValue
+    End If
+End Sub
+
+
+Public Sub sortByDate()
+    ' Отключаем обновление экрана для ускорения выполнения и предотвращения мигания экрана
+    Application.ScreenUpdating = False
+
+    ' Сортировка по первому столбцу именованного диапазона MainLog
+    With ActiveSheet.Sort
+        .SortFields.Clear
+        .SortFields.Add Key:=MainLog.Columns(1), Order:=xlAscending
+        .SetRange MainLog
+        .Header = xlYes
+        .Apply
+    End With
+
+    ' Включаем обновление экрана
+    Application.ScreenUpdating = True
+
+    ' Выбираем строку с сегодняшней датой
+    Cells(TodayRowNumber, 1).Select
+End Sub
+
+
+Public Sub ApplyConditionalFormatting()
+    ' Установить активный лист
+    With ActiveSheet
+    
+        ' Удалить все правила условного форматирования на листе
+        .Cells.FormatConditions.Delete
+    
+        ' Применение всех правил к диапазону firstColRange
+        With .Columns(1)
+            ' Правило 1: Если суббота, выделить светло-зеленым
+            .FormatConditions.Add Type:=xlExpression, Formula1:="=ДЕНЬНЕД(RC;2)=6"
+            With .FormatConditions(.FormatConditions.count)
+                .Interior.Color = RGB(226, 239, 218)
+                .StopIfTrue = False
+            End With
+        
+            ' Правило 2: Если воскресенье, выделить светло-светло-зеленым
+            .FormatConditions.Add Type:=xlExpression, Formula1:="=ДЕНЬНЕД(RC;2)=7"
+            With .FormatConditions(.FormatConditions.count)
+                .Interior.Color = RGB(198, 224, 180)
+                .StopIfTrue = False
+            End With
+            
+            ' Правило 3: Если дата повторяется - текст серый
+            .FormatConditions.Add Type:=xlExpression, Formula1:="=RC=R[-1]C"
+            With .FormatConditions(.FormatConditions.count)
+                .Font.Color = RGB(150, 150, 150)
+                .StopIfTrue = False
+            End With
+        End With
+
+        With .Columns(9)
+            ' Правило 4: Если значение в колонке 9 (I) меньше 0
+            .FormatConditions.Add Type:=xlExpression, Formula1:="= RC<0"
+            With .FormatConditions(.FormatConditions.count)
+                .Font.Color = RGB(255, 0, 0)
+                .Interior.Color = RGB(255, 255, 0)
+                .StopIfTrue = False
+            End With
+        End With
+    
+        With .Range(.Columns(1), .Columns(12))
+            ' Правило 5: нарисовать границы внутри и снаружи строк Сегодня и выделить жирным шрифтом
+            .FormatConditions.Add Type:=xlExpression, Formula1:="=RC1=СЕГОДНЯ()"
+            With .FormatConditions(.FormatConditions.count)
+                With .Borders
+                    .LineStyle = xlContinuous
+                    .Color = RGB(0, 0, 0)        ' Черный цвет границ
+                    .Weight = xlThin             ' Тонкая граница
+                End With
+                .Font.Bold = True
+            End With
+        End With
+    End With
+    
+End Sub
+
+Public Sub MyMacro()
+    On Error GoTo ErrHandler
+    MsgBox "Hello from the custom context menu!"
+    Exit Sub
+ErrHandler:
+    MsgBox "Error: " & Err.Description
+End Sub
+

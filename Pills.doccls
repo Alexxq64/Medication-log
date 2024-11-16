@@ -1,0 +1,190 @@
+﻿'@IgnoreModule OptionExplicit, ParameterCanBeByVal
+'@Folder("Таблетки")
+
+Private Sub Workbook_Open()
+    Call AddToContextMenu
+        ActiveWindow.WindowState = xlMaximized
+
+'    With ThisWorkbook
+        ' Инициализируем глобальные диапазоны с указанием их абсолютных адресов
+        Set MainLog = Range("MainLog")              ' 'Medication log'!C1:C12 - основной журнал
+        Set Summary1 = Range("Summary1")            ' Summary!C1 - количество строк в первом столбце сводки
+        Set TodayRowNumber = Range("TodayRowNumber") ' System!R1C2 - ячейка с номером строки для сегодняшней даты
+        Set TotalRows = Range("TotalRows")        ' System!R2C2 - общее количество строк
+        Set TotalColumns = Range("TotalColumns") ' System!R3C2 - общее количество столбцов
+        Set TotalMedicines = Range("TotalMedicines") ' System!R4C2 - общее количество медикаментов
+'    End With
+End Sub
+
+
+Public Sub MyCustomMacro()
+    On Error GoTo ErrHandler
+    MsgBox "Hello from the custom context menu!"
+    Exit Sub
+ErrHandler:
+    MsgBox "Error: " & Err.Description
+End Sub
+
+Public Sub AddToContextMenu()
+    Dim contextMenu As CommandBar
+    Dim newMenuItem As CommandBarButton
+    
+    ' Указание на контекстное меню ячеек (Cell context menu)
+    Set contextMenu = Application.CommandBars("Cell")
+    
+    ' Удаление старого пункта, если он уже существует (чтобы избежать дубликатов)
+    On Error Resume Next
+    contextMenu.Controls("My Custom Item").Delete
+    On Error GoTo 0
+    
+    ' Добавляем новый пункт в конец контекстного меню
+'    Set newMenuItem = contextMenu.Controls.Add(Type:=msoControlButton, Temporary:=True)
+    Set newMenuItem = contextMenu.Controls.Add(Type:=msoControlButton)
+    
+    ' Настройка нового пункта меню
+    With newMenuItem
+        .Caption = "My Custom Item" ' Название пункта
+'        .OnAction = "'Таблетки203.xlsm'!ЭтаКнига.MyCustomMacro"
+        .OnAction = "MyCustomMacro"
+        .FaceId = 59                 ' Иконка для меню (необязательно)
+    End With
+End Sub
+
+
+Private Sub Workbook_BeforeClose(Cancel As Boolean)
+    Call RemoveFromContextMenu
+End Sub
+
+Public Sub RemoveFromContextMenu()
+    Dim contextMenu As CommandBar
+    ' Указание на контекстное меню ячеек (Cell context menu)
+    Set contextMenu = Application.CommandBars("Cell")
+    
+    ' Удаление пункта меню
+    On Error Resume Next
+    contextMenu.Controls("My Custom Item").Delete
+    On Error GoTo 0
+End Sub
+Public Sub CreateCellShortcutToday()
+    Set myBar = CommandBars.Add _
+        (Name:="CellShortcutToday", Position:=msoBarPopup, _
+        Temporary:=True)
+' Добавление элемента меню
+    Set myItem = myBar.Controls.Add(Type:=msoControlButton)
+    With myItem
+        .Caption = "И&зменить схему приема"
+        .OnAction = "ChangeMedicationSchedule"
+'        .FaceId = 1554
+    End With
+' Добавление элемента меню
+    Set myItem = myBar.Controls.Add(Type:=msoControlButton)
+    With myItem
+        .Caption = "&Удалить лекарство из списка"
+        .OnAction = "DeleteMedicine"
+'        .FaceId = 217
+    End With
+' Добавление элемента меню
+    Set myItem = myBar.Controls.Add(Type:=msoControlButton)
+    With myItem
+        .Caption = "&Повторить курс"
+        .OnAction = "RepeatCourse"
+'        .FaceId = 291
+    End With
+' Добавление элемента меню
+    Set myItem = myBar.Controls.Add(Type:=msoControlButton)
+    With myItem
+        .Caption = "&Пропустить один день"
+        .OnAction = "SkipOneDay"
+'        .FaceId = 291
+    End With
+' Добавление элемента меню
+'    Set myItem = myBar.Controls.Add(Type:=msoControlButton)
+'    With myItem
+'        .Caption = "&4"
+'        .OnAction = "UnderDesign"
+'        .FaceId = 149
+'        .BeginGroup = True
+'    End With
+' Добавление элемента меню
+'    Set myItem = myBar.Controls.Add(Type:=msoControlButton)
+'    With myItem
+'        .Caption = "&5"
+'        .OnAction = "UnderDesign"
+'        .FaceId = 1550
+'    End With
+' Добавление элемента меню
+'    Set myItem = myBar.Controls.Add(Type:=msoControlButton)
+'    With myItem
+'        .Caption = "&6"
+'        .OnAction = "UnderDesign"
+'        .FaceId = 2654
+ '   End With
+End Sub
+
+Public Sub ChangeShortCutMenuToday()
+' Заменяет контекстное меню для ячеек с названиями лекарств на странице "Сегодня"
+    Dim Bar As CommandBar
+    Dim NewControl As CommandBarButton
+    CommandBars("Cell").Enabled = True
+'    DeleteFromShortcut
+    If ActiveSheet.Name = "Лист1" And ActiveCell.Column = 1 Then
+        CommandBars("Cell").Enabled = False
+        CommandBars("CellShortcutToday").ShowPopup
+        Cancel = True
+'        Set Bar = CommandBars("Cell")
+'        Set NewControl = Bar.Controls.Add _
+'            (Type:=msoControlButton, _
+'                Temporary:=True)
+'        With NewControl
+'            .Caption = "И&зменить схему приема"
+'            .OnAction = "ChangeMedicationSchedule"
+'            .Picture = Application.CommandBars.GetImageMso _
+'                ("WrapText", 16, 16)
+'            .Style = msoButtonIconAndCaption
+'        End With
+    End If
+End Sub
+
+Public Sub ResetCellShortCutMenu()
+' Возвращает стандартное контекстное меню для всех ячеек
+    Dim cbar As CommandBar
+    On Error Resume Next
+    For Each cbar In Application.CommandBars
+        If cbar.Name = "Cell" Then
+            cbar.Reset
+            cbar.Enabled = True
+        End If
+    Next cbar
+    CommandBars("CellShortcutToday").Delete
+End Sub
+
+Public Sub DeleteFromShortcut()
+    On Error Resume Next
+    CommandBars("Cell").Controls _
+        ("И&зменить схему приема").Delete
+End Sub
+
+Private Sub Workbook_Deactivate()
+    On Error Resume Next
+        With Application
+            .CommandBars("Cell").Controls("MyMacro").Delete
+        End With
+    On Error GoTo 0
+End Sub
+
+'Private Sub Workbook_SheetBeforeRightClick(ByVal Sh As Object, ByVal Target As Range, Cancel As Boolean)
+'    Dim cmdBtn As CommandBarButton
+'    On Error Resume Next
+'        With Application
+'            .CommandBars("Cell").Controls("MyMacro").Delete
+'            Set cmdBtn = .CommandBars("Cell").Controls.Add(Temporary:=True)
+'        End With
+'
+'        With cmdBtn
+'           .Caption = "MyMacro"
+'           .Style = msoButtonCaption
+'           .OnAction = "MyMacro"
+'        End With
+'    On Error GoTo 0
+'End Sub
+

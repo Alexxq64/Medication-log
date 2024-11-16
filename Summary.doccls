@@ -1,0 +1,12 @@
+﻿'@Folder("Таблетки")
+
+Option Explicit
+' BUG: сводная таблица при пуске теряет заголовок
+Private Sub Worksheet_Activate()
+    '@Ignore UseMeaningfulName
+    Dim pt As PivotTable
+    For Each pt In Summary.PivotTables
+        pt.RefreshTable
+    Next pt
+
+End Sub
