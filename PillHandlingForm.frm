@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} PillHandlingForm 
-   Caption         =   "PillHandlingForm"
+   Caption         =   "Схема приема"
    ClientHeight    =   4485
    ClientLeft      =   120
    ClientTop       =   465
@@ -150,8 +150,70 @@ End Sub
 
 
 
+Private Sub DurationBox_AfterUpdate()
+    Dim days As Integer
+
+    On Error Resume Next ' Игнорируем ошибки ввода
+    days = CInt(DurationBox.Value) ' Преобразуем текст в число
+
+    ' Проверяем диапазон значений
+    If days < DurationSpinButton.Min Or days > DurationSpinButton.Max Then
+        MsgBox "Введите значение от " & DurationSpinButton.Min & " до " & DurationSpinButton.Max & ".", vbExclamation
+        DurationBox.Value = DurationSpinButton.Value ' Возвращаем предыдущее значение
+    Else
+        DurationSpinButton.Value = days ' Синхронизация SpinButton
+    End If
+
+    On Error GoTo 0 ' Включаем обработку ошибок обратно
+End Sub
+
+Private Sub DurationSpinButton_Change()
+    ' Синхронизация DurationBox с DurationSpinButton
+    DurationBox.Value = DurationSpinButton.Value
+End Sub
+
+Private Sub chkEveryDay_Click()
+    ' Выбор "Каждый день"
+    SetCheckBoxState chkEveryDay
+End Sub
+
+Private Sub chkEveryOtherDay_Click()
+    ' Выбор "Через день"
+    SetCheckBoxState chkEveryOtherDay
+End Sub
+
+Private Sub chkCustomDays_Click()
+    ' Выбор "Каждые несколько дней"
+    SetCheckBoxState chkCustomDays
+End Sub
+
+' Общая процедура для управления состоянием чекбоксов
+Private Sub SetCheckBoxState(selectedCheckBox As MSForms.CheckBox)
+    ' Сбрасываем все чекбоксы
+    chkEveryDay.Value = False
+    chkEveryOtherDay.Value = False
+    chkCustomDays.Value = False
+
+    ' Активируем выбранный чекбокс
+    selectedCheckBox.Value = True
+
+    ' Включаем/выключаем поля на основе выбранного варианта
+    If selectedCheckBox Is chkCustomDays Then
+        spnCustomDays.Enabled = True
+        txtCustomDays.Enabled = True
+    Else
+        spnCustomDays.Enabled = False
+        txtCustomDays.Enabled = False
+    End If
+End Sub
+
+
 Private Sub OKButton_Click()
     Unload Me
+End Sub
+
+Private Sub OptionButton1_Click()
+
 End Sub
 
 Private Sub UserForm_Activate()
@@ -160,3 +222,23 @@ Private Sub UserForm_Activate()
     UpdatePillsList
 End Sub
 
+Private Sub UserForm_Initialize()
+    ' Устанавливаем начальное значение для DurationBox и DurationSpinButton
+    DurationBox.Value = 10
+    DurationSpinButton.Min = 0
+    DurationSpinButton.Max = 1000
+    DurationSpinButton.Value = 10
+    ' Устанавливаем начальный выбор на "Каждый день"
+    chkEveryDay.Caption = "Каждый день"
+    chkEveryOtherDay.Caption = "Через день"
+    chkCustomDays.Caption = "Каждые несколько дней"
+
+    chkEveryDay.Value = True
+    chkEveryOtherDay.Value = False
+    chkCustomDays.Value = False
+
+    ' Отключаем элементы, связанные с "Каждые несколько дней"
+    spnCustomDays.Enabled = False
+    txtCustomDays.Enabled = False
+
+End Sub

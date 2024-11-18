@@ -27,17 +27,17 @@ Public Sub DateShift(cell As Range, shift As Integer)
 ' BUG: не работает поиск свободной даты
 
     Dim newDate As Date
-    Dim medicine As String
+    Dim Medicine As String
     
     newDate = cell + shift          ' Начальная новая дата
-    medicine = cell.Offset(0, 1).Value ' Лекарство из второго столбца
+    Medicine = cell.Offset(0, 1).Value ' Лекарство из второго столбца
 
     ' Начинаем цикл поиска свободной даты
     Do
         ' Если дата не найдена в списке или найдена, но не для этого лекарства
         If WorksheetFunction.CountIf(Range("A:A"), newDate) = 0 Then
             Exit Do                     ' Даты нет, выходим из цикла
-        ElseIf WorksheetFunction.CountIfs(Range("A:A"), newDate, Range("B:B"), medicine) = 0 Then
+        ElseIf WorksheetFunction.CountIfs(Range("A:A"), newDate, Range("B:B"), Medicine) = 0 Then
             Exit Do                     ' Дата есть, лекарства нет
         Else
             newDate = newDate + shift   ' Переход на следующую дату в направлении shift
@@ -116,6 +116,7 @@ End Sub
 Sub DosageSchedule()
 
     PillHandlingForm.Show
+    AddNewSchedule "Атаракс", #11/17/2024#, 3, 1, 1, 1, 1, 1
 '    Duration = 3
 '    For i = 1 To Duration
 '    ' TotalRows для того, чтобы после сортировки все добавленные строки встали последними в соответствующий день
@@ -123,6 +124,18 @@ Sub DosageSchedule()
 '    Next i
 '    sortByDate
 End Sub
+
+Sub AddNewSchedule(Medicine As String, StartDate As Date, _
+                   Duration As Integer, Morning As Integer, _
+                   Afternoon As Integer, Evening As Integer, _
+                   Night As Integer, SkipDays As Integer)
+    toRow = TotalRows + 1
+    For i = 0 To Duration - 1
+        CopyFromTo ActiveCell.Row, toRow + i, StartDate + i * (SkipDays + 1)
+    Next i
+                   
+End Sub
+
 
 Public Sub AddEmptyString(from As Integer, into As Integer)
 ' BUG: раскрашивает 1 столбец на всех листах, откуда выполняется макрос, в зеленый
