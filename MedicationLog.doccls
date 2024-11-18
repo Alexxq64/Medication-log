@@ -63,9 +63,6 @@ Private Sub Worksheet_Change(ByVal Target As Range)
 End Sub
 
 
-
-
-
 '@Ignore ProcedureCanBeWrittenAsFunction
 Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
     Dim newRow As Long
@@ -116,13 +113,6 @@ End Sub
 Sub DosageSchedule()
 
     PillHandlingForm.Show
-    AddNewSchedule "Атаракс", #11/17/2024#, 3, 1, 1, 1, 1, 1
-'    Duration = 3
-'    For i = 1 To Duration
-'    ' TotalRows для того, чтобы после сортировки все добавленные строки встали последними в соответствующий день
-'        CopyFromTo TodayRowNumber.Value, TotalRows.Value, Date + i
-'    Next i
-'    sortByDate
 End Sub
 
 Sub AddNewSchedule(Medicine As String, StartDate As Date, _

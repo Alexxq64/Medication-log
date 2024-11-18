@@ -197,23 +197,49 @@ Private Sub SetCheckBoxState(selectedCheckBox As MSForms.CheckBox)
     ' Активируем выбранный чекбокс
     selectedCheckBox.Value = True
 
-    ' Включаем/выключаем поля на основе выбранного варианта
-    If selectedCheckBox Is chkCustomDays Then
-        spnCustomDays.Enabled = True
-        txtCustomDays.Enabled = True
-    Else
+    ' Настройка TextBox и SpinButton в зависимости от выбранного чекбокса
+    If selectedCheckBox Is chkEveryDay Then
         spnCustomDays.Enabled = False
         txtCustomDays.Enabled = False
+        txtCustomDays.Text = 1 ' Каждый день
+    ElseIf selectedCheckBox Is chkEveryOtherDay Then
+        spnCustomDays.Enabled = False
+        txtCustomDays.Enabled = False
+        txtCustomDays.Text = 2 ' Через день
+    ElseIf selectedCheckBox Is chkCustomDays Then
+        spnCustomDays.Enabled = True
+        txtCustomDays.Enabled = True
+        txtCustomDays.Text = spnCustomDays.Value ' Каждые несколько дней
     End If
 End Sub
 
-
 Private Sub OKButton_Click()
+    AddNewSchedule "Атаракс", #11/17/2024#, 3, 1, 1, 1, 1, 1
     Unload Me
 End Sub
 
-Private Sub OptionButton1_Click()
+' Событие изменения SpinButton
+Private Sub spnCustomDays_Change()
+    ' При изменении значения SpinButton обновляем TextBox
+    txtCustomDays.Text = spnCustomDays.Value
+End Sub
 
+' Событие изменения TextBox
+Private Sub txtCustomDays_Change()
+    Dim days As Long
+    On Error Resume Next ' Игнорировать ошибки, если текст невозможно преобразовать в число
+
+    ' Проверяем, что пользователь ввел число
+    days = CLng(txtCustomDays.Text)
+    
+    ' Ограничиваем значение диапазоном SpinButton
+    If days < spnCustomDays.Min Then days = spnCustomDays.Min
+    If days > spnCustomDays.Max Then days = spnCustomDays.Max
+
+    ' Устанавливаем значение в SpinButton
+    spnCustomDays.Value = days
+
+    On Error GoTo 0 ' Восстановить обработку ошибок
 End Sub
 
 Private Sub UserForm_Activate()
@@ -232,7 +258,14 @@ Private Sub UserForm_Initialize()
     chkEveryDay.Caption = "Каждый день"
     chkEveryOtherDay.Caption = "Через день"
     chkCustomDays.Caption = "Каждые несколько дней"
+    
+    ' Устанавливаем начальные значения
+    spnCustomDays.Min = 3          ' Минимальное значение
+    spnCustomDays.Max = 31         ' Максимальное значение
+    spnCustomDays.Value = 3        ' Начальное значение
 
+    txtCustomDays.Text = spnCustomDays.Value ' Синхронизация TextBox с SpinButton
+    
     chkEveryDay.Value = True
     chkEveryOtherDay.Value = False
     chkCustomDays.Value = False
