@@ -26,7 +26,7 @@ Sub UpdateDateList(Optional ByVal dateValue As Variant = -1)
     Set ws = ThisWorkbook.Worksheets("Medication log")
     
     ' Устанавливаем ссылку на ComboBox
-    Set dateComboBox = Me.DateListComboBox
+    Set dateComboBox = Me.cmbDate
     
     ' Очищаем ComboBox перед обновлением
     dateComboBox.Clear
@@ -98,7 +98,7 @@ Sub UpdatePillsList(Optional ByVal pillValue As Variant = "")
     Set ws = ThisWorkbook.Worksheets("Medication log")
     
     ' Указываем ComboBox для лекарств
-    Set pillComboBox = Me.PillsListComboBox
+    Set pillComboBox = Me.cmbName
 
     ' Очищаем ComboBox
     pillComboBox.Clear
@@ -148,28 +148,75 @@ Sub UpdatePillsList(Optional ByVal pillValue As Variant = "")
 End Sub
 
 
+Private Sub btnCancel_Click()
+    Unload Me
+End Sub
+
+Private Sub btnOK_Click()
+    ' Проверка обязательных полей
+    If cmbName.Text = "" Then
+        MsgBox "Введите название лекарства!", vbExclamation
+        Exit Sub
+    End If
+    If IsDate(cmbDate.Value) = False Then
+        MsgBox "Введите корректную дату начала!", vbExclamation
+        Exit Sub
+    End If
+
+    ' Считываем данные с формы
+    Dim pillName As String
+    Dim startDate As Date
+    Dim duration As Integer
+    Dim dosageMorning As Double
+    Dim dosageAfternoon As Double
+    Dim dosageEvening As Double
+    Dim dosageNight As Double
+    Dim repeateDays As Integer
+
+    pillName = cmbName.Text
+    startDate = CDate(cmbDate.Value)
+    duration = CInt(txtDuration.Value)
+
+    dosageMorning = FixDecimalSeparator(txtMorning.Value)
+    dosageAfternoon = FixDecimalSeparator(txtAfternoon.Value)
+    dosageEvening = FixDecimalSeparator(txtEvening.Value)
+    dosageNight = FixDecimalSeparator(txtNight.Value)
+    
+    ' Проверяем количество повторов (целое число)
+    If IsNumeric(txtRepeateDays.Text) And CLng(txtRepeateDays.Text) >= 0 Then
+        repeateDays = CLng(txtRepeateDays.Text)
+    Else
+        repeateDays = 0
+    End If
+
+    ' Вызываем AddNewSchedule
+    MedicationLog.AddNewSchedule pillName, startDate, duration, dosageMorning, dosageAfternoon, dosageEvening, dosageNight, repeateDays
+
+    ' Закрываем форму
+    Unload Me
+End Sub
 
 
-Private Sub DurationBox_AfterUpdate()
+Private Sub txtDuration_AfterUpdate()
     Dim days As Integer
 
     On Error Resume Next ' Игнорируем ошибки ввода
-    days = CInt(DurationBox.Value) ' Преобразуем текст в число
+    days = CInt(txtDuration.Value) ' Преобразуем текст в число
 
     ' Проверяем диапазон значений
-    If days < DurationSpinButton.Min Or days > DurationSpinButton.Max Then
-        MsgBox "Введите значение от " & DurationSpinButton.Min & " до " & DurationSpinButton.Max & ".", vbExclamation
-        DurationBox.Value = DurationSpinButton.Value ' Возвращаем предыдущее значение
+    If days < spnDuration.Min Or days > spnDuration.Max Then
+        MsgBox "Введите значение от " & spnDuration.Min & " до " & spnDuration.Max & ".", vbExclamation
+        txtDuration.Value = spnDuration.Value ' Возвращаем предыдущее значение
     Else
-        DurationSpinButton.Value = days ' Синхронизация SpinButton
+        spnDuration.Value = days ' Синхронизация SpinButton
     End If
 
     On Error GoTo 0 ' Включаем обработку ошибок обратно
 End Sub
 
-Private Sub DurationSpinButton_Change()
-    ' Синхронизация DurationBox с DurationSpinButton
-    DurationBox.Value = DurationSpinButton.Value
+Private Sub spnDuration_Change()
+    ' Синхронизация txtDuration с spnDuration
+    txtDuration.Value = spnDuration.Value
 End Sub
 
 Private Sub chkEveryDay_Click()
@@ -182,9 +229,9 @@ Private Sub chkEveryOtherDay_Click()
     SetCheckBoxState chkEveryOtherDay
 End Sub
 
-Private Sub chkCustomDays_Click()
+Private Sub chkRepeateDays_Click()
     ' Выбор "Каждые несколько дней"
-    SetCheckBoxState chkCustomDays
+    SetCheckBoxState chkRepeateDays
 End Sub
 
 ' Общая процедура для управления состоянием чекбоксов
@@ -192,52 +239,48 @@ Private Sub SetCheckBoxState(selectedCheckBox As MSForms.CheckBox)
     ' Сбрасываем все чекбоксы
     chkEveryDay.Value = False
     chkEveryOtherDay.Value = False
-    chkCustomDays.Value = False
+    chkRepeateDays.Value = False
 
     ' Активируем выбранный чекбокс
     selectedCheckBox.Value = True
 
     ' Настройка TextBox и SpinButton в зависимости от выбранного чекбокса
     If selectedCheckBox Is chkEveryDay Then
-        spnCustomDays.Enabled = False
-        txtCustomDays.Enabled = False
-        txtCustomDays.Text = 1 ' Каждый день
+        spnRepeateDays.Enabled = False
+        txtRepeateDays.Enabled = False
+        txtRepeateDays.Text = 1 ' Каждый день
     ElseIf selectedCheckBox Is chkEveryOtherDay Then
-        spnCustomDays.Enabled = False
-        txtCustomDays.Enabled = False
-        txtCustomDays.Text = 2 ' Через день
-    ElseIf selectedCheckBox Is chkCustomDays Then
-        spnCustomDays.Enabled = True
-        txtCustomDays.Enabled = True
-        txtCustomDays.Text = spnCustomDays.Value ' Каждые несколько дней
+        spnRepeateDays.Enabled = False
+        txtRepeateDays.Enabled = False
+        txtRepeateDays.Text = 2 ' Через день
+    ElseIf selectedCheckBox Is chkRepeateDays Then
+        spnRepeateDays.Enabled = True
+        txtRepeateDays.Enabled = True
+        txtRepeateDays.Text = 3 ' Каждые несколько дней
     End If
 End Sub
 
-Private Sub OKButton_Click()
-    AddNewSchedule "Атаракс", #11/17/2024#, 3, 1, 1, 1, 1, 1
-    Unload Me
-End Sub
 
 ' Событие изменения SpinButton
-Private Sub spnCustomDays_Change()
+Private Sub spnRepeateDays_Change()
     ' При изменении значения SpinButton обновляем TextBox
-    txtCustomDays.Text = spnCustomDays.Value
+    txtRepeateDays.Text = spnRepeateDays.Value
 End Sub
 
 ' Событие изменения TextBox
-Private Sub txtCustomDays_Change()
+Private Sub txtRepeateDays_Change()
     Dim days As Long
     On Error Resume Next ' Игнорировать ошибки, если текст невозможно преобразовать в число
 
     ' Проверяем, что пользователь ввел число
-    days = CLng(txtCustomDays.Text)
+    days = CLng(txtRepeateDays.Text)
     
     ' Ограничиваем значение диапазоном SpinButton
-    If days < spnCustomDays.Min Then days = spnCustomDays.Min
-    If days > spnCustomDays.Max Then days = spnCustomDays.Max
+    If days < spnRepeateDays.Min Then days = spnRepeateDays.Min
+    If days > spnRepeateDays.Max Then days = spnRepeateDays.Max
 
     ' Устанавливаем значение в SpinButton
-    spnCustomDays.Value = days
+    spnRepeateDays.Value = days
 
     On Error GoTo 0 ' Восстановить обработку ошибок
 End Sub
@@ -249,29 +292,29 @@ Private Sub UserForm_Activate()
 End Sub
 
 Private Sub UserForm_Initialize()
-    ' Устанавливаем начальное значение для DurationBox и DurationSpinButton
-    DurationBox.Value = 10
-    DurationSpinButton.Min = 0
-    DurationSpinButton.Max = 1000
-    DurationSpinButton.Value = 10
+    ' Устанавливаем начальное значение для txtDuration и spnDuration
+    txtDuration.Value = 10
+    spnDuration.Min = 0
+    spnDuration.Max = 1000
+    spnDuration.Value = 10
     ' Устанавливаем начальный выбор на "Каждый день"
     chkEveryDay.Caption = "Каждый день"
     chkEveryOtherDay.Caption = "Через день"
-    chkCustomDays.Caption = "Каждые несколько дней"
+    chkRepeateDays.Caption = "Каждые несколько дней"
     
     ' Устанавливаем начальные значения
-    spnCustomDays.Min = 3          ' Минимальное значение
-    spnCustomDays.Max = 31         ' Максимальное значение
-    spnCustomDays.Value = 3        ' Начальное значение
+    spnRepeateDays.Min = 1          ' Минимальное значение
+    spnRepeateDays.Max = 31         ' Максимальное значение
+    spnRepeateDays.Value = 1        ' Начальное значение
 
-    txtCustomDays.Text = spnCustomDays.Value ' Синхронизация TextBox с SpinButton
+    txtRepeateDays.Text = spnRepeateDays.Value ' Синхронизация TextBox с SpinButton
     
     chkEveryDay.Value = True
     chkEveryOtherDay.Value = False
-    chkCustomDays.Value = False
+    chkRepeateDays.Value = False
 
     ' Отключаем элементы, связанные с "Каждые несколько дней"
-    spnCustomDays.Enabled = False
-    txtCustomDays.Enabled = False
+    spnRepeateDays.Enabled = False
+    txtRepeateDays.Enabled = False
 
 End Sub

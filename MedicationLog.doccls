@@ -115,16 +115,29 @@ Sub DosageSchedule()
     PillHandlingForm.Show
 End Sub
 
-Sub AddNewSchedule(Medicine As String, StartDate As Date, _
-                   Duration As Integer, Morning As Integer, _
-                   Afternoon As Integer, Evening As Integer, _
-                   Night As Integer, SkipDays As Integer)
+
+Public Sub AddNewSchedule(Medicine As String, startDate As Date, _
+                   duration As Integer, Morning As Double, _
+                   Afternoon As Double, Evening As Double, _
+                   Night As Double, repeateDays As Integer)
+                   
+  
     toRow = TotalRows + 1
-    For i = 0 To Duration - 1
-        CopyFromTo ActiveCell.Row, toRow + i, StartDate + i * (SkipDays + 1)
+    For i = 0 To duration - 1
+        CopyFromTo ActiveCell.Row, toRow + i, startDate + i * repeateDays
+        Cells(toRow + i, 2) = Medicine
+        Cells(toRow + i, 4) = Morning
+        Cells(toRow + i, 5) = Afternoon
+        Cells(toRow + i, 6) = Evening
+        Cells(toRow + i, 7) = Night
+        For C = 4 To 7
+            If Cells(toRow + i, C) = 0 Then Cells(toRow + i, C).ClearContents
+        Next C
     Next i
+    sortByDate
                    
 End Sub
+
 
 
 Public Sub AddEmptyString(from As Integer, into As Integer)

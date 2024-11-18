@@ -17,3 +17,29 @@ Public Sub MyCustomMacro()
 ErrHandler:
     MsgBox "Error: " & Err.Description
 End Sub
+
+Public Sub AddNewSchedule(Medicine As String, startDate As Date, _
+                   duration As Integer, Morning As Integer, _
+                   Afternoon As Integer, Evening As Integer, _
+                   Night As Integer, skipDays As Integer)
+                   
+  
+    toRow = TotalRows + 1
+    For i = 0 To duration - 1
+        CopyFromTo ActiveCell.Row, toRow + i, startDate + i * (skipDays + 1)
+    Next i
+                   
+End Sub
+
+Function FixDecimalSeparator(inputText As String) As Double
+    ' «аменить точку на разделитель в зависимости от локали
+    inputText = Replace(inputText, ".", Application.DecimalSeparator)
+    
+    ' ѕроверить, €вл€етс€ ли текст числом, и вернуть значение
+    If IsNumeric(inputText) Then
+        FixDecimalSeparator = CDbl(inputText)
+    Else
+        FixDecimalSeparator = 0 ' ≈сли текст не €вл€етс€ числом, вернуть 0
+    End If
+End Function
+
