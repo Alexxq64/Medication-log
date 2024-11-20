@@ -17,7 +17,7 @@ Public Type MedicationInfo
     Afternoon As Double ' Доза днем
     Evening As Double ' Доза вечером
     Night As Double ' Доза ночью
-    Duration As Integer ' Продолжительность курса (в днях)
+    duration As Integer ' Продолжительность курса (в днях)
     RepeatDays As Integer ' Периодичность (каждый день = 1, через день = 2 и т.д.)
     Class As String ' Класс препарата
     TrackStock As Boolean ' Отслеживать остаток

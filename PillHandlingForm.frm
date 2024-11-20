@@ -163,25 +163,40 @@ Private Sub btnOK_Click()
         Exit Sub
     End If
 
-    ' Считываем данные с формы
-    Dim pillName As String
-    Dim startDate As Date
-    Dim Duration As Integer
-    Dim dosageMorning As Double
-    Dim dosageAfternoon As Double
-    Dim dosageEvening As Double
-    Dim dosageNight As Double
+'    ' Считываем данные с формы
+'    Dim pillName As String
+'    Dim startDate As Date
+    Dim duration As Integer
+'    Dim dosageMorning As Double
+'    Dim dosageAfternoon As Double
+'    Dim dosageEvening As Double
+'    Dim dosageNight As Double
     Dim repeateDays As Integer
-
-    pillName = cmbName.Text
-    startDate = CDate(cmbDate.Value)
-    Duration = CInt(txtDuration.Value)
-
-    dosageMorning = FixDecimalSeparator(txtMorning.Value)
-    dosageAfternoon = FixDecimalSeparator(txtAfternoon.Value)
-    dosageEvening = FixDecimalSeparator(txtEvening.Value)
-    dosageNight = FixDecimalSeparator(txtNight.Value)
     
+    Dim record As SingleDoseRecord
+    record.DateScheduled = CDate(cmbDate.Value)
+    record.Medicine = cmbName.Text
+    record.Dosage = ""
+    record.Morning = FixDecimalSeparator(txtMorning.Value)
+    record.Afternoon = FixDecimalSeparator(txtAfternoon.Value)
+    record.Evening = FixDecimalSeparator(txtEvening.Value)
+    record.Night = FixDecimalSeparator(txtNight.Value)
+    record.InStock = True
+    record.Class = ""
+    record.Notes = ""
+
+
+    
+
+'    pillName = cmbName.Text
+'    startDate = CDate(cmbDate.Value)
+    duration = CInt(txtDuration.Value)
+'
+'    dosageMorning = FixDecimalSeparator(txtMorning.Value)
+'    dosageAfternoon = FixDecimalSeparator(txtAfternoon.Value)
+'    dosageEvening = FixDecimalSeparator(txtEvening.Value)
+'    dosageNight = FixDecimalSeparator(txtNight.Value)
+'
     ' Проверяем количество повторов (целое число)
     If IsNumeric(txtRepeateDays.Text) And CLng(txtRepeateDays.Text) >= 0 Then
         repeateDays = CLng(txtRepeateDays.Text)
@@ -190,6 +205,7 @@ Private Sub btnOK_Click()
     End If
 
     ' Вызываем AddNewSchedule
+    MedicationLog.AddDoseSchedule record, duration, repeateDays
 '    MedicationLog.AddNewSchedule pillName, startDate, Duration, dosageMorning, dosageAfternoon, dosageEvening, dosageNight, repeateDays
 
     ' Закрываем форму
