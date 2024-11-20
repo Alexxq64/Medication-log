@@ -166,7 +166,7 @@ Private Sub btnOK_Click()
     ' Считываем данные с формы
     Dim pillName As String
     Dim startDate As Date
-    Dim duration As Integer
+    Dim Duration As Integer
     Dim dosageMorning As Double
     Dim dosageAfternoon As Double
     Dim dosageEvening As Double
@@ -175,7 +175,7 @@ Private Sub btnOK_Click()
 
     pillName = cmbName.Text
     startDate = CDate(cmbDate.Value)
-    duration = CInt(txtDuration.Value)
+    Duration = CInt(txtDuration.Value)
 
     dosageMorning = FixDecimalSeparator(txtMorning.Value)
     dosageAfternoon = FixDecimalSeparator(txtAfternoon.Value)
@@ -190,7 +190,7 @@ Private Sub btnOK_Click()
     End If
 
     ' Вызываем AddNewSchedule
-    MedicationLog.AddNewSchedule pillName, startDate, duration, dosageMorning, dosageAfternoon, dosageEvening, dosageNight, repeateDays
+'    MedicationLog.AddNewSchedule pillName, startDate, Duration, dosageMorning, dosageAfternoon, dosageEvening, dosageNight, repeateDays
 
     ' Закрываем форму
     Unload Me

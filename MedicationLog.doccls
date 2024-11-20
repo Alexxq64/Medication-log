@@ -116,27 +116,135 @@ Sub DosageSchedule()
 End Sub
 
 
-Public Sub AddNewSchedule(Medicine As String, startDate As Date, _
-                   duration As Integer, Morning As Double, _
-                   Afternoon As Double, Evening As Double, _
-                   Night As Double, repeateDays As Integer)
-                   
-  
-    toRow = TotalRows + 1
-    For i = 0 To duration - 1
-        CopyFromTo ActiveCell.Row, toRow + i, startDate + i * repeateDays
-        Cells(toRow + i, 2) = Medicine
-        Cells(toRow + i, 4) = Morning
-        Cells(toRow + i, 5) = Afternoon
-        Cells(toRow + i, 6) = Evening
-        Cells(toRow + i, 7) = Night
-        For C = 4 To 7
-            If Cells(toRow + i, C) = 0 Then Cells(toRow + i, C).ClearContents
-        Next C
+
+
+Public Sub AddDoseSchedule(singleRecord As SingleDoseRecord, _
+                           Duration As Integer, RepeatDays As Integer)
+    Dim ws As Worksheet
+    Dim firstRow As Long
+    Dim lastRow As Long
+    Dim startTime As Single
+    Dim endTime As Single
+    Dim i As Integer
+
+    ' Фиксируем время начала выполнения процедуры
+    startTime = Timer
+    Debug.Print "Процедура началась: " & Format(Now, "hh:mm:ss")
+    
+    ' Определяем первую и последнюю строки для записи данных
+    firstRow = TotalRows + 1
+    lastRow = TotalRows + Duration
+
+' ----------------------------------------------------------------------
+' Важно! Присвоение диапазону через массив для ускорения работы:
+'
+' - В данном коде используется техника присвоения значений диапазону с помощью массива Variant.
+'   Это делается для повышения производительности при записи большого объема данных в ячейки Excel.
+'   Работа с массивами в VBA значительно быстрее, чем запись данных в ячейки по одной, особенно
+'   когда речь идет о множественных строках и столбцах.
+'
+' - Присваивание значений диапазону по одной ячейке за раз влечет за собой множество операций с ячейками,
+'   что может значительно замедлить выполнение макроса. В отличие от этого, при записи данных через массив
+'   вся информация сначала собирается в памяти и затем записывается в диапазон одной операцией. Это минимизирует
+'   количество обращений к объекту Worksheet и значительно ускоряет выполнение.
+'
+' - Процесс заключается в следующем: данные (значения и формулы) для каждой строки собираются в массив,
+'   где каждая строка массива соответствует одной строке на листе. Далее массив присваивается диапазону ячеек
+'   через свойство `.Value`. Это позволяет избежать множества отдельных операций с ячейками, делая процесс
+'   записи более эффективным.
+'
+' - В данном случае создается двумерный массив, в котором строки соответствуют данным для каждой записи,
+'   а столбцы - значениям для каждого поля записи (например, дата, дозировка, утренний прием и т.д.).
+'   После того как массив заполнен, его значения сразу присваиваются диапазону в Excel через
+'   `Cells(firstRow, 1).Resize(Duration, 12).Value = outputArray`.
+'
+' - Эта техника особенно полезна, когда необходимо записать значительное количество данных,
+'   а также когда нужно записывать как значения, так и формулы в одну операцию, что минимизирует
+'   время выполнения макроса.
+' ----------------------------------------------------------------------
+
+
+    ' Подготовка данных для записи в диапазон
+    Dim outputArray() As Variant
+    ReDim outputArray(1 To Duration, 1 To 12)
+
+    ' Формируем массив записей
+    For i = 1 To Duration
+        Dim currentRow As Integer
+        currentRow = i
+        
+        ' 1-7: основные данные
+        outputArray(currentRow, 1) = singleRecord.DateScheduled + (i - 1) * RepeatDays ' Дата
+        outputArray(currentRow, 2) = singleRecord.Medicine ' Название лекарства
+        outputArray(currentRow, 3) = singleRecord.Dosage ' Дозировка
+        outputArray(currentRow, 4) = singleRecord.Morning ' Утро
+        outputArray(currentRow, 5) = singleRecord.Afternoon ' День
+        outputArray(currentRow, 6) = singleRecord.Evening ' Вечер
+        outputArray(currentRow, 7) = singleRecord.Night ' Ночь
+
+        ' 8: формула "Общее за день"
+        outputArray(currentRow, 8) = "=SUM(RC[-4]:RC[-1])"
+
+        ' 9: оставляем пусто, чтобы позже записать массив формул
+        outputArray(currentRow, 9) = 0
+
+        ' 10: класс
+        outputArray(currentRow, 10) = singleRecord.Class
+
+        ' 11: закупка (если InStock = False, оставить пусто)
+        If singleRecord.InStock Then
+            outputArray(currentRow, 11) = ""
+        Else
+            outputArray(currentRow, 11) = "=RC[-3]"
+        End If
+
+        ' 12: примечания
+        outputArray(currentRow, 12) = singleRecord.Notes
     Next i
-    sortByDate
-                   
+
+    ' Записываем данные в диапазон за один раз
+    Dim dataRange As Range
+    Set dataRange = Cells(firstRow, 1).Resize(Duration, 12)
+    dataRange.Value = outputArray
+
+    ' Формируем массив формул для 9-го столбца
+    Dim formulaArray() As Variant
+    ReDim formulaArray(1 To Duration, 1 To 1)
+    For i = 1 To Duration
+        formulaArray(i, 1) = "=SUMIF(R2C2:RC2,RC2,R2C11:RC11)-SUMIF(R2C2:RC2,RC2,R2C8:RC8)"
+    Next i
+
+    ' Записываем массив формул в 9-й столбец
+    dataRange.Columns(9).FormulaR1C1 = formulaArray
+
+' ----------------------------------------------------------------------
+' Важно! Столбец 9 (Остаток) обрабатывается отдельно, так как:
+'
+' - В 8 столбце формулы используют относительные ссылки (например, RC[-4]:RC[-1]),
+'   которые корректно работают при записи значений в массив и присвоении этих значений диапазону.
+' - Однако для 9-го столбца, где используется более сложная формула с ссылками на другие строки,
+'   возможны проблемы при присвоении формулы через массив Variant. Excel пытается адаптировать
+'   ссылки для каждой ячейки, что приводит к некорректной интерпретации диапазонов и ссылок.
+'   Это может нарушить логику формулы, так как ссылки на диапазоны могут быть неправильно сдвинуты
+'   или заменены.
+'
+' - Формулы, которые работают только с данными текущей строки и не обращаются к другим строкам,
+'   (например, просто суммируя соседние ячейки) записываются корректно через массив Variant.
+'   Однако когда формула зависит от других строк (как в случае с 9-м столбцом), необходимо
+'   использовать другой подход для корректной записи формул.
+'
+' - Чтобы избежать подобных проблем и сохранить правильную логику формул, для 9-го столбца
+'   мы записываем формулы отдельно с использованием свойства `FormulaR1C1`, что позволяет
+'   точно настроить относительные ссылки в каждой строке и избежать ошибок при вычислениях.
+' ----------------------------------------------------------------------
+
+
+    ' Фиксируем время завершения процедуры
+    endTime = Timer
+    Debug.Print "Процедура завершилась: " & Format(Now, "hh:mm:ss")
+    Debug.Print "Время выполнения (сек): " & Round(endTime - startTime, 2) & vbCrLf
 End Sub
+
 
 
 
@@ -165,11 +273,11 @@ End Sub
 
 
 Public Sub FilterByCellValue()
-    Dim CurrentRow As Long
-    CurrentRow = ActiveCell.Row
+    Dim currentRow As Long
+    currentRow = ActiveCell.Row
     
     Dim targetValue As Variant
-    targetValue = Cells(CurrentRow, 2).Value
+    targetValue = Cells(currentRow, 2).Value
     
     ActiveSheet.UsedRange.AutoFilter Field:=2, Criteria1:=targetValue
 End Sub

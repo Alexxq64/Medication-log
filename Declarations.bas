@@ -10,25 +10,41 @@ Public TotalColumns As Range
 Public TotalMedicines As Range
 Public TotalRows As Range
 
+Public Type MedicationInfo
+    Name As String ' Название лекарства
+    Dosage As String ' Дозировка
+    Morning As Double ' Доза утром
+    Afternoon As Double ' Доза днем
+    Evening As Double ' Доза вечером
+    Night As Double ' Доза ночью
+    Duration As Integer ' Продолжительность курса (в днях)
+    RepeatDays As Integer ' Периодичность (каждый день = 1, через день = 2 и т.д.)
+    Class As String ' Класс препарата
+    TrackStock As Boolean ' Отслеживать остаток
+    InFirstAidKit As Boolean ' Входит в состав аптечки
+End Type
+
+Public Type SingleDoseRecord
+    DateScheduled As Date ' Дата приема
+    Medicine As String ' Название лекарства
+    Dosage As String ' Дозировка (текст, например "10 мг" или "1 таблетка")
+    Morning As Double ' Утро
+    Afternoon As Double ' День
+    Evening As Double ' Вечер
+    Night As Double ' Ночь
+    InStock As Boolean ' Указывает, нужно ли отслеживать остаток
+    Class As String 'Класс препарата
+    Notes As String ' Примечания
+End Type
+
+
+
 Public Sub MyCustomMacro()
     On Error GoTo ErrHandler
     MsgBox "Hello from the custom context menu!"
     Exit Sub
 ErrHandler:
     MsgBox "Error: " & Err.Description
-End Sub
-
-Public Sub AddNewSchedule(Medicine As String, startDate As Date, _
-                   duration As Integer, Morning As Integer, _
-                   Afternoon As Integer, Evening As Integer, _
-                   Night As Integer, skipDays As Integer)
-                   
-  
-    toRow = TotalRows + 1
-    For i = 0 To duration - 1
-        CopyFromTo ActiveCell.Row, toRow + i, startDate + i * (skipDays + 1)
-    Next i
-                   
 End Sub
 
 Function FixDecimalSeparator(inputText As String) As Double
