@@ -13,6 +13,8 @@ Private Sub Workbook_Open()
         Set TotalRows = Range("TotalRows")        ' System!R2C2 - общее количество строк
         Set TotalColumns = Range("TotalColumns") ' System!R3C2 - общее количество столбцов
         Set TotalMedicines = Range("TotalMedicines") ' System!R4C2 - общее количество медикаментов
+        MedicationLog.ApplyConditionalFormatting
+        CFRulesQtty = MainLog.FormatConditions.count
 '    End With
 End Sub
 

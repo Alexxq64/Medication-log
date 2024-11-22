@@ -12,3 +12,9 @@ Attribute Макрос1.VB_ProcData.VB_Invoke_Func = " \n14"
     Selection.AutoFill Destination:=Range("I3942:I3952")
     Range("I3942:I3952").Select
 End Sub
+
+'
+'Sub CreateActiveCellName()
+'    ThisWorkbook.Names.Add Name:="ActiveCell", RefersTo:="=INDIRECT(""RC"",FALSE)"
+'End Sub
+

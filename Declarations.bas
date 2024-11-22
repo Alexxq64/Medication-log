@@ -9,6 +9,7 @@ Public Summary1 As Range
 Public TotalColumns As Range
 Public TotalMedicines As Range
 Public TotalRows As Range
+Public CFRulesQtty As Long
 
 Public Type MedicationInfo
     Name As String ' Название лекарства

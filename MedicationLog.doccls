@@ -49,6 +49,7 @@ Public Sub DateShift(cell As Range, shift As Integer)
 
     ' Сортировка по дате после изменения значения
     sortByDate
+
 End Sub
 
 
@@ -57,9 +58,11 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     ' +/- (+Enter) на дате сдвигает сдвигает текущую строку вперед или назад на день или больше
     ' больше, если в следующий день уже есть это лекарство
     DateShift Target, GetDateShift(Target)
+'    ' Сортировка по дате после изменения значения
+'    sortByDate
 
-    ' Применение условного форматирования после изменений
-    ApplyConditionalFormatting
+'    ' Применение условного форматирования после изменений
+'    ApplyConditionalFormatting
 End Sub
 
 
@@ -395,8 +398,27 @@ Public Sub ApplyConditionalFormatting()
                     .Weight = xlThin             ' Тонкая граница
                 End With
                 .Font.Bold = True
+                .StopIfTrue = False
             End With
         End With
+        
+        With .Range(.Columns(1), .Columns(12))
+            ' Получаем значение из столбца 2 активной строки
+            newFormula = "=RC2=""" & Cells(ActiveCell.Row, 2).Value & """"
+            ' Добавляем новое правило
+            With .FormatConditions.Add(Type:=xlExpression, Formula1:=newFormula)
+                ' Настройка рамок
+                With .Borders
+                    .LineStyle = xlContinuous
+                    .Color = RGB(150, 150, 150)  ' Тонкий, чуть более тёмный серый цвет рамки
+                    .Weight = xlThin
+                End With
+                .Interior.Color = RGB(230, 230, 230) ' Серый оттенок
+                .StopIfTrue = False
+            End With
+        End With
+        
+        
     End With
     
 End Sub
@@ -410,120 +432,23 @@ ErrHandler:
 End Sub
 
 
-'Private Sub Worksheet_SelectionChange(ByVal Target As Range)
-'
-'    Dim Name As String
-'    Dim i As Integer
-'    Dim formulaToRemove As String
-'
-'
-'
-'    With ActiveSheet
-'
-'        ' Удалить все правила условного форматирования на листе
-'        .Cells.FormatConditions.Delete
-'
-'        ' Применение всех правил к диапазону firstColRange
-'        With .Columns(1)
-'            ' Правило 1: Если суббота, выделить светло-зеленым
-'            .FormatConditions.Add Type:=xlExpression, Formula1:="=ДЕНЬНЕД(RC;2)=6"
-'            With .FormatConditions(.FormatConditions.count)
-'                .Interior.Color = RGB(226, 239, 218)
-'                .StopIfTrue = False
-'            End With
-'
-'            ' Правило 2: Если воскресенье, выделить светло-светло-зеленым
-'            .FormatConditions.Add Type:=xlExpression, Formula1:="=ДЕНЬНЕД(RC;2)=7"
-'            With .FormatConditions(.FormatConditions.count)
-'                .Interior.Color = RGB(198, 224, 180)
-'                .StopIfTrue = False
-'            End With
-'
-'            ' Правило 3: Если дата повторяется - текст серый
-'            .FormatConditions.Add Type:=xlExpression, Formula1:="=RC=R[-1]C"
-'            With .FormatConditions(.FormatConditions.count)
-'                .Font.Color = RGB(150, 150, 150)
-'                .StopIfTrue = False
-'            End With
-'        End With
-'
-'        With .Columns(9)
-'            ' Правило 4: Если значение в колонке 9 (I) меньше 0
-'            .FormatConditions.Add Type:=xlExpression, Formula1:="= RC<0"
-'            With .FormatConditions(.FormatConditions.count)
-'                .Font.Color = RGB(255, 0, 0)
-'                .Interior.Color = RGB(255, 255, 0)
-'                .StopIfTrue = False
-'            End With
-'        End With
-'
-'        With .Range(.Columns(1), .Columns(12))
-'            ' Правило 5: нарисовать границы внутри и снаружи строк Сегодня и выделить жирным шрифтом
-'            .FormatConditions.Add Type:=xlExpression, Formula1:="=RC1=СЕГОДНЯ()"
-'            With .FormatConditions(.FormatConditions.count)
-'                With .Borders
-'                    .LineStyle = xlContinuous
-'                    .Color = RGB(0, 0, 0)        ' Черный цвет границ
-'                    .Weight = xlThin             ' Тонкая граница
-'                End With
-'                .Font.Bold = True
-'            End With
-'        End With
-'    End With
-'
-'
-'    ' Получаем имя из текущей строки
-'    Name = Cells(ActiveCell.Row, 2).Value
-'    formulaToRemove = "=RC2=""" & Name & """" ' Формула для проверки
-'
-'    ' Добавляем новое правило условного форматирования
-'    With Columns(2)
-'        .FormatConditions.Add Type:=xlExpression, Formula1:=formulaToRemove
-'        With .FormatConditions(.FormatConditions.count)
-'            .Interior.Color = RGB(173, 216, 230) ' Светло-голубой фон
-'            .StopIfTrue = False
-'        End With
-'    End With
-'
-'End Sub
-'
-
-
 Private Sub Worksheet_SelectionChange(ByVal Target As Range)
-    Dim Name As String
-    Dim TargetRange As Range
+    Static PreviousSelection As Range
 
-    ' Получаем значение из столбца 2 активной строки
-    Name = Cells(ActiveCell.Row, 2).Value
-       formulaToRemove = "=RC2=""" & Name & """"
-
-    ' Устанавливаем диапазон, к которому применяется форматирование (весь столбец 2)
-    Set TargetRange = Columns(2)
-
-    ' Если имя пустое, не делаем ничего
-    If Len(Name) = 0 Then Exit Sub
-
-    ' Удаляем все предыдущие правила условного форматирования
-    TargetRange.FormatConditions.Delete
-
-    ' Добавляем новое правило
-    With TargetRange.FormatConditions.Add(Type:=xlExpression, Formula1:=formulaToRemove)
-        .Interior.Color = RGB(242, 242, 242) ' Светло-голубой фон
-        .StopIfTrue = False
-    End With
+    ' Отключаем обновление экрана для уменьшения мигания
+    Application.ScreenUpdating = False
     
-        With Columns(2)
-            ' Правило 5: нарисовать границы внутри и снаружи строк Сегодня и выделить жирным шрифтом
-            .FormatConditions.Add Type:=xlExpression, Formula1:="=RC1=СЕГОДНЯ()"
-            With .FormatConditions(.FormatConditions.count)
-                With .Borders
-                    .LineStyle = xlContinuous
-                    .Color = RGB(0, 0, 0)        ' Черный цвет границ
-                    .Weight = xlThin             ' Тонкая граница
-                End With
-                .Font.Bold = True
-            End With
-        End With
-    
-    
+    ' Инициализация переменной при первом вызове
+    If PreviousSelection Is Nothing Then
+        Set PreviousSelection = Target
+    End If
+
+    ' Если выделение изменилось, обновляем форматирование
+    If PreviousSelection.Address <> Target.Address Then
+        Call ApplyConditionalFormatting
+        Set PreviousSelection = Target
+    End If
+
+    ' Включаем обновление экрана
+    Application.ScreenUpdating = True
 End Sub
