@@ -402,7 +402,8 @@ Public Sub ApplyConditionalFormatting()
             End With
         End With
         
-        With .Range(.Columns(1), .Columns(12))
+'        With .Range(.Columns(1), .Columns(12))
+        With MainLog
             ' Получаем значение из столбца 2 активной строки
             newFormula = "=RC2=""" & Cells(ActiveCell.Row, 2).Value & """"
             ' Добавляем новое правило
@@ -410,7 +411,7 @@ Public Sub ApplyConditionalFormatting()
                 ' Настройка рамок
                 With .Borders
                     .LineStyle = xlContinuous
-                    .Color = RGB(150, 150, 150)  ' Тонкий, чуть более тёмный серый цвет рамки
+                    .Color = RGB(200, 200, 200)  ' Тонкий, чуть более тёмный серый цвет рамки
                     .Weight = xlThin
                 End With
                 .Interior.Color = RGB(230, 230, 230) ' Серый оттенок

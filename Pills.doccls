@@ -45,7 +45,7 @@ Public Sub AddToContextMenu()
     
     ' Настройка нового пункта меню
     With newMenuItem
-        .Caption = "My Custom Item" ' Название пункта
+        .Caption = "Добавить новый курс" ' Название пункта
 '        .OnAction = "'Таблетки203.xlsm'!ЭтаКнига.MyCustomMacro"
         .OnAction = "MyCustomMacro"
         .FaceId = 59                 ' Иконка для меню (необязательно)

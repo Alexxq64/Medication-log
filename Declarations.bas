@@ -42,7 +42,8 @@ End Type
 
 Public Sub MyCustomMacro()
     On Error GoTo ErrHandler
-    MsgBox "Hello from the custom context menu!"
+    MedicationLog.DosageSchedule
+'    MsgBox "Hello from the custom context menu!"
     Exit Sub
 ErrHandler:
     MsgBox "Error: " & Err.Description
